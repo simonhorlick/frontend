@@ -1,0 +1,50 @@
+server {
+
+    root /var/www/unifi.horlick.me;
+
+    index index.html;
+
+    server_name unifi.horlick.me;
+
+    # Send the response to the client synchronously while it is receiving it from
+    # the proxied server.
+    proxy_request_buffering off;
+
+    # Handle websocket upgrades correctly.
+    location /wss {
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_pass https://backend$request_uri;
+    }
+  
+    # Proxy all requests the backend. This is defined in nginx.conf.
+    location / {
+      proxy_pass https://backend$request_uri;
+      proxy_set_header   Host             $host;
+      proxy_set_header   X-Real-IP        $remote_addr;
+      proxy_set_header Referer "";
+      proxy_ssl_verify off;
+    }
+
+    listen [::]:443 ssl; # managed by Certbot
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/sg.horlick.me/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/sg.horlick.me/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+server {
+    if ($host = unifi.horlick.me) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    listen [::]:80;
+
+    server_name unifi.horlick.me;
+    return 404; # managed by Certbot
+
+
+}
